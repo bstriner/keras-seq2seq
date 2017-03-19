@@ -1,7 +1,7 @@
 import os
 from nltk.corpus import shakespeare
 from keras.callbacks import LambdaCallback
-from keras.layers import Input
+from keras.layers import Input, Lambda
 from keras.optimizers import Adam
 import numpy as np
 from keras.models import Model
@@ -94,13 +94,15 @@ def on_epoch_end(model, vectors, charset, depth):
         n = 32
         x = sample_words(vectors, n)
         xinp = process_test_sequences(x, depth)
-        y = model.predict_on_batch(xinp)
-        y = np.argmax(y, axis=-1)
+        y = model.predict_on_batch(xinp).astype(np.int32)
         print "Epoch: {}".format(epoch)
         with open("output/epoch-{}.txt".format(epoch), 'w') as f:
+            s = "Loss: {}".format(logs["loss"])
+            print s
+            f.write(s + "\n")
             for i in range(n):
                 w1 = decode_vector(x[i], charset)
-                w2 = decode_row(y[i], charset) #[len(w1) + 1:].strip()
+                w2 = (decode_row(y[i], charset)[len(w1) + 2:]).split(" ")[0]
                 s = "{}: [{}]".format(w1, w2)
                 print s
                 f.write(s + "\n")
@@ -109,6 +111,11 @@ def on_epoch_end(model, vectors, charset, depth):
 
 
 def main():
+    hidden_dim = 512
+    batch_size = 64
+    steps_per_epoch = 512
+    epochs = 1000
+    lr = 1e-3
     words = clean_words(shakespeare_words())
     charset, charmap = get_charset(words)
     vectors = map_words(words, charmap)
@@ -116,16 +123,19 @@ def main():
     depth = max_word * 2 + 4
     print ("Depth: {}, Charset: {}".format(depth, len(charset)))
     x_k = len(charset)
-    x = Input((depth, 2), dtype='int32')
-    hidden_dim = 512
-    s2s = S2SLayer(x_k, hidden_dim)
+    x = Input((depth, 3), dtype='float32')
+    s2s = S2SLayer(x_k, hidden_dim, stochastic=True)
     y = s2s(x)
-    m = Model(inputs=[x], outputs=[y])
+    ysoftmax = Lambda(lambda z: z[:, :, :-1], output_shape=lambda z: (z[0], z[1], z[2] - 1))(y)
+    ypred = Lambda(lambda z: z[:, :, -1], output_shape=lambda z: (z[0], z[1], 1))(y)
+    m = Model(inputs=[x], outputs=[ysoftmax])
     m.summary()
-    m.compile(Adam(1e-3), s2sloss(x[:, :, 1]))
-    batch_size = 64
-    cb = LambdaCallback(on_epoch_end=on_epoch_end(m, vectors, charset, depth))
-    m.fit_generator(bigram_generator(vectors, batch_size, depth, x_k), callbacks=[cb], steps_per_epoch=256, epochs=100)
+    m.compile(Adam(lr), s2sloss(x[:, :, 1]))
+    mtest = Model(inputs=[x], outputs=[ypred])
+    cb = LambdaCallback(on_epoch_end=on_epoch_end(mtest, vectors, charset, depth))
+    m.fit_generator(bigram_generator(vectors, batch_size, depth, x_k), callbacks=[cb],
+                    steps_per_epoch=steps_per_epoch, epochs=epochs,
+                    verbose=1)
 
 
 if __name__ == "__main__":
