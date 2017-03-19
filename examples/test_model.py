@@ -173,8 +173,8 @@ def on_epoch_end(model, vectors, charset, depth):
 
 def main():
     # Hyperparameters
-    hidden_dim = 256
-    batch_size = 64
+    hidden_dim = 512
+    batch_size = 128
     steps_per_epoch = 512
     epochs = 1000
     lr = 1e-3
