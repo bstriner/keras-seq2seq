@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def process_sequences(input_sequences, output_sequences, depth):
+def process_sequences(input_sequences, output_sequences, depth=None):
     """
     Expects lists of lists of ints
     Returns 3d int array (batch size, depth, [0=character, 1=mask])
@@ -10,6 +10,8 @@ def process_sequences(input_sequences, output_sequences, depth):
     :return:
     """
     assert (len(input_sequences) == len(output_sequences))
+    if not depth:
+        depth = max(len(i) + len(o) + 4 for i, o in zip(input_sequences, output_sequences))
     n = len(input_sequences)
     x = np.zeros((n, depth, 2), dtype=np.int32)
     for i, (iseq, oseq) in enumerate(zip(input_sequences, output_sequences)):

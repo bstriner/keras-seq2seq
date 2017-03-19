@@ -74,19 +74,18 @@ def sample_bigram(vectors):
     return vectors[i1], vectors[i2]
 
 
-def sample_bigrams(vectors, n, depth, x_k):
+def sample_bigrams(vectors, n, x_k):
     """
     Sample n word pairs and convert to input/output vectors
     :param vectors:
     :param n:
-    :param depth:
     :param x_k:
     :return:
     """
     grams = [sample_bigram(vectors) for _ in range(n)]
     w1 = [w[0] for w in grams]
     w2 = [w[1] for w in grams]
-    x, y = process_sequences(w1, w2, depth)
+    x, y = process_sequences(w1, w2)
     return x, one_hot_2d(y, x_k)
 
 
@@ -186,10 +185,9 @@ def main():
     vectors = map_words(words, charmap)
     max_word = max(len(w) for w in vectors)
     depth = max_word * 2 + 4
-    print ("Depth: {}, Charset: {}".format(depth, len(charset)))
 
     # Create model
-    x = Input((depth, 3), dtype='float32')
+    x = Input((None, 3), dtype='float32')
     s2s = S2SLayer(x_k, hidden_dim, stochastic=True)
     # output of layer is softmax and prediction concatenated; slice the output
     y = s2s(x)
@@ -204,7 +202,7 @@ def main():
     # callback to print results
     cb = LambdaCallback(on_epoch_end=on_epoch_end(mtest, vectors, charset, depth))
     # train model
-    m.fit_generator(bigram_generator(vectors, batch_size, depth, x_k), callbacks=[cb],
+    m.fit_generator(bigram_generator(vectors, batch_size, x_k), callbacks=[cb],
                     steps_per_epoch=steps_per_epoch, epochs=epochs,
                     verbose=1)
 
