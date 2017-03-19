@@ -1,6 +1,6 @@
 import keras.backend as K
 
-if K.backend=="theano":
+if K.backend()=="theano":
     import theano.tensor as T
     def cumsum(x, axis=-1):
         return T.cumsum(x, axis=axis)
