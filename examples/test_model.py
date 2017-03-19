@@ -163,7 +163,7 @@ def on_epoch_end(model, vectors, charset, depth):
             f.write(s + "\n")
             for i in range(n):
                 w1 = decode_vector(x[i], charset)
-                w2 = (decode_row(y[i], charset)[len(w1):]).split(" ")[0]
+                w2 = (decode_row(y[i], charset)[len(w1)+1:]).split(" ")[0]
                 s = "{}: [{}]".format(w1, w2)
                 print s
                 f.write(s + "\n")

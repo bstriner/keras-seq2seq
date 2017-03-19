@@ -5,6 +5,7 @@ def process_sequences(input_sequences, output_sequences, depth):
     """
     Expects lists of lists of ints
     Returns 3d int array (batch size, depth, [0=character, 1=mask])
+    mask values: 1-input, 2-training output, 3-testing output, 0-padding
     :param sequences:
     :return:
     """
@@ -60,6 +61,8 @@ def process_test_sequences(input_sequences, depth):
             x[i, idx, 1] = 1
             idx += 1
         x[i, idx, 1] = 1
+        idx += 1
+        x[i, idx, 1] = 2
         idx += 1
         while idx < depth:
             x[i, idx, 1] = 3
